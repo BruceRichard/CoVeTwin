@@ -90,6 +90,40 @@ The selected part occupancies are merged and passed to the conditional flow
 decoder. Part labels are then transferred from the verified coarse geometry to
 the refined mesh before URDF/XML construction.
 
+## Qualitative results
+
+CoVeTwin produces complete, high-fidelity articulated assets across synthetic
+and real-world inputs. The comparison below highlights geometry completeness,
+appearance fidelity and articulation quality against representative baselines.
+
+<div align="center">
+<img src="img/covetwin/lab1.png" width="100%" alt="Qualitative reconstruction comparison across articulated-asset generation methods">
+<br>
+<em>Single-image reconstruction results for URDF-Anything, Articulate-Anything,
+PhysX-3D, PhysX-Anything and CoVeTwin.</em>
+</div>
+
+The predicted meshes also support part-level physical-property visualization.
+The heatmaps retain the detailed decoded surfaces rather than displaying only
+the coarse voxel representation.
+
+<div align="center">
+<img src="img/covetwin/lab3.png" width="92%" alt="Part-level physical-property heatmap comparison">
+<br>
+<em>Physical-property heatmaps produced by PhysX-3D, PhysX-Anything and
+CoVeTwin.</em>
+</div>
+
+Finally, the exported articulated assets can be loaded into a physics engine
+for interaction between independently generated objects.
+
+<div align="center">
+<img src="img/covetwin/lab4.png" width="100%" alt="Physics-engine interaction comparison across generated articulated assets">
+<br>
+<em>Qualitative physics-engine interaction results across the evaluated
+methods.</em>
+</div>
+
 ## Code structure
 
 | Component | Implementation |
