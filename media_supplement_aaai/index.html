@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoVeTwin — AAAI Media Supplement</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17212b;
+      --muted: #5e6b76;
+      --accent: #2f855a;
+      --accent-dark: #226545;
+      --line: #dce4e7;
+      --panel: #ffffff;
+      --soft: #f4f7f6;
+      --shadow: 0 12px 30px rgba(20, 42, 34, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    header {
+      padding: 64px 24px 54px;
+      color: white;
+      background:
+        radial-gradient(circle at 84% 20%, rgba(145, 224, 182, 0.25), transparent 30%),
+        linear-gradient(135deg, #10271d, #235c40 60%, #2f855a);
+    }
+
+    header .inner,
+    main,
+    footer {
+      width: min(1240px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #b9efd0;
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 900px;
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.8rem);
+      line-height: 1.02;
+      letter-spacing: -0.045em;
+    }
+
+    header p {
+      max-width: 850px;
+      margin: 22px 0 0;
+      color: #e7f5ed;
+      font-size: clamp(1rem, 1.8vw, 1.25rem);
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    nav a {
+      padding: 9px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    main {
+      padding: 34px 0 72px;
+    }
+
+    section {
+      margin-top: 34px;
+      padding: clamp(22px, 4vw, 42px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .section-kicker {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.55rem, 3vw, 2.4rem);
+      letter-spacing: -0.03em;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .lead {
+      max-width: 920px;
+      margin: 10px 0 26px;
+      color: var(--muted);
+    }
+
+    .hero-figure,
+    .card,
+    .media-pair,
+    .triple {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #fafcfb;
+    }
+
+    .hero-figure {
+      margin-top: 20px;
+    }
+
+    .hero-figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    figcaption,
+    .caption {
+      padding: 14px 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-5 {
+      display: grid;
+      gap: 18px;
+    }
+
+    .grid-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid-5 {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .card img,
+    .card video,
+    .media-pair img,
+    .media-pair video,
+    .triple img {
+      display: block;
+      width: 100%;
+      background:
+        linear-gradient(45deg, #f2f4f3 25%, transparent 25%),
+        linear-gradient(-45deg, #f2f4f3 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f2f4f3 75%),
+        linear-gradient(-45deg, transparent 75%, #f2f4f3 75%);
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+      background-size: 16px 16px;
+      object-fit: contain;
+    }
+
+    .square {
+      aspect-ratio: 1;
+    }
+
+    .variant {
+      padding: 12px 12px 0;
+    }
+
+    .variant h3 {
+      min-height: 2.7em;
+      text-align: center;
+    }
+
+    .variant-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .variant-grid img {
+      width: 100%;
+      border-radius: 10px;
+      background: #f7f8f8;
+    }
+
+    .variant-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 8px 0 12px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .attribute-key {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin: 0 0 22px;
+      padding: 14px;
+      border-radius: 14px;
+      background: var(--soft);
+    }
+
+    .attribute-key img {
+      width: 170px;
+      height: 170px;
+      object-fit: contain;
+      background: white;
+      border-radius: 10px;
+    }
+
+    .triple {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-bottom: 18px;
+    }
+
+    .triple > div {
+      min-width: 0;
+      border-right: 1px solid var(--line);
+    }
+
+    .triple > div:last-child {
+      border-right: 0;
+    }
+
+    .triple h3 {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+      background: white;
+    }
+
+    .object-title {
+      grid-column: 1 / -1;
+      padding: 12px 16px;
+      color: white;
+      font-weight: 800;
+      background: var(--accent-dark);
+    }
+
+    .media-pair {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      margin-bottom: 20px;
+    }
+
+    .media-pair .input,
+    .media-pair .result {
+      min-width: 0;
+    }
+
+    .media-pair .input {
+      border-right: 1px solid var(--line);
+    }
+
+    .media-pair img,
+    .media-pair video {
+      aspect-ratio: 1;
+      min-height: 260px;
+      max-height: 520px;
+    }
+
+    .media-label {
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-align: center;
+      text-transform: uppercase;
+      background: white;
+    }
+
+    .note {
+      margin: 22px 0 0;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      border-radius: 0 12px 12px 0;
+      color: #46564e;
+      background: #edf7f1;
+    }
+
+    footer {
+      padding: 0 0 40px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      text-align: center;
+    }
+
+    @media (max-width: 1000px) {
+      .grid-5 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      header {
+        padding-top: 44px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-5,
+      .media-pair {
+        grid-template-columns: 1fr;
+      }
+
+      .triple {
+        grid-template-columns: 1fr;
+      }
+
+      .triple > div,
+      .media-pair .input {
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <p class="eyebrow">AAAI Media Supplement</p>
+      <h1>CoVeTwin</h1>
+      <p>
+        Compact-and-Verified Geometry Modeling for High-Fidelity Articulated
+        Digital Twin Generation from a Single Image
+      </p>
+      <nav aria-label="Supplement sections">
+        <a href="#method">Method</a>
+        <a href="#ablation">Ablation</a>
+        <a href="#attributes">Physical attributes</a>
+        <a href="#benchmark">Benchmark playback</a>
+        <a href="#wild">Real-world examples</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="method">
+      <p class="section-kicker">01 · Method</p>
+      <h2>From one image to a simulation-ready digital twin</h2>
+      <p class="lead">
+        CoVeTwin predicts compact part geometry and physical structure with a
+        VLM, verifies multiple voxel candidates, restores detailed surfaces with
+        an image-conditioned flow decoder, transfers part labels, and exports
+        articulated URDF and MuJoCo XML assets.
+      </p>
+
+      <figure class="hero-figure">
+        <img src="01_method/01_method_overview.png" alt="Complete CoVeTwin method overview">
+        <figcaption>
+          End-to-end method: relative shape-span prediction, structure-aware
+          candidate verification, coarse-to-fine flow refinement, part
+          decomposition, and simulator-ready export.
+        </figcaption>
+      </figure>
+
+      <figure class="hero-figure">
+        <img src="01_method/02_representation_comparison.png" alt="Geometry representation comparison">
+        <figcaption>
+          Numerical serialization comparison. Relative shape spans remove
+          repeated absolute positions while remaining exactly reversible.
+        </figcaption>
+      </figure>
+    </section>
+
+    <section id="ablation">
+      <p class="section-kicker">02 · Ablation</p>
+      <h2>Compact representation and verification both matter</h2>
+      <p class="lead">
+        The main qualitative panel compares alternative geometry serializations
+        and removal of candidate verification. The detailed globe panels below
+        show the corresponding refined-mesh attribute assignments.
+      </p>
+
+      <figure class="hero-figure">
+        <img src="02_ablation/01_ablation_overview.png" alt="CoVeTwin qualitative ablation overview">
+        <figcaption>
+          Full CoVeTwin produces cleaner, more complete articulated geometry
+          than direct voxel, absolute-index, absolute-span, and no-verification
+          variants.
+        </figcaption>
+      </figure>
+
+      <div class="grid-5" style="margin-top: 20px">
+        <article class="card variant">
+          <h3>Direct voxel</h3>
+          <div class="variant-grid">
+            <img src="02_ablation/02_globe_voxel_affordance.png" alt="Direct voxel affordance">
+            <img src="02_ablation/03_globe_voxel_material.png" alt="Direct voxel material">
+          </div>
+          <div class="variant-labels"><span>Affordance</span><span>Material</span></div>
+        </article>
+
+        <article class="card variant">
+          <h3>Absolute index</h3>
+          <div class="variant-grid">
+            <img src="02_ablation/04_globe_index_affordance.png" alt="Absolute index affordance">
+            <img src="02_ablation/05_globe_index_material.png" alt="Absolute index material">
+          </div>
+          <div class="variant-labels"><span>Affordance</span><span>Material</span></div>
+        </article>
+
+        <article class="card variant">
+          <h3>Absolute span</h3>
+          <div class="variant-grid">
+            <img src="02_ablation/06_globe_absolute_span_affordance.png" alt="Absolute span affordance">
+            <img src="02_ablation/07_globe_absolute_span_material.png" alt="Absolute span material">
+          </div>
+          <div class="variant-labels"><span>Affordance</span><span>Material</span></div>
+        </article>
+
+        <article class="card variant">
+          <h3>Without verification</h3>
+          <div class="variant-grid">
+            <img src="02_ablation/08_globe_no_verification_affordance.png" alt="No-verification affordance">
+            <img src="02_ablation/09_globe_no_verification_material.png" alt="No-verification material">
+          </div>
+          <div class="variant-labels"><span>Affordance</span><span>Material</span></div>
+        </article>
+
+        <article class="card variant">
+          <h3>Full CoVeTwin</h3>
+          <div class="variant-grid">
+            <img src="02_ablation/10_globe_full_covetwin_affordance.png" alt="Full CoVeTwin affordance">
+            <img src="02_ablation/11_globe_full_covetwin_material.png" alt="Full CoVeTwin material">
+          </div>
+          <div class="variant-labels"><span>Affordance</span><span>Material</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="attributes">
+      <p class="section-kicker">03 · Physical attributes</p>
+      <h2>Attributes are bound to refined part meshes</h2>
+      <p class="lead">
+        These panels use the high-resolution decoded meshes, not coarse voxel
+        previews. Colors remain spatially aligned with functional parts and
+        material regions.
+      </p>
+
+      <div class="attribute-key">
+        <img src="03_physical_attributes/affordance_colorbar.png" alt="Affordance color scale">
+        <img src="03_physical_attributes/material_colorbar.png" alt="Material color scale">
+      </div>
+
+      <article class="triple">
+        <div class="object-title">Faucet handle</div>
+        <div><h3>Input</h3><img class="square" src="03_physical_attributes/faucet/input.png" alt="Faucet input"></div>
+        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/faucet/affordance.png" alt="Faucet affordance"></div>
+        <div><h3>Material</h3><img class="square" src="03_physical_attributes/faucet/material.png" alt="Faucet material"></div>
+      </article>
+
+      <article class="triple">
+        <div class="object-title">Articulated carton</div>
+        <div><h3>Input</h3><img class="square" src="03_physical_attributes/carton/input.png" alt="Carton input"></div>
+        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/carton/affordance.png" alt="Carton affordance"></div>
+        <div><h3>Material</h3><img class="square" src="03_physical_attributes/carton/material.png" alt="Carton material"></div>
+      </article>
+
+      <article class="triple">
+        <div class="object-title">Cart</div>
+        <div><h3>Input</h3><img class="square" src="03_physical_attributes/cart/input.png" alt="Cart input"></div>
+        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/cart/affordance.png" alt="Cart affordance"></div>
+        <div><h3>Material</h3><img class="square" src="03_physical_attributes/cart/material.png" alt="Cart material"></div>
+      </article>
+
+      <article class="triple">
+        <div class="object-title">Globe</div>
+        <div><h3>Input</h3><img class="square" src="03_physical_attributes/globe/input.png" alt="Globe input"></div>
+        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/globe/affordance.png" alt="Globe affordance"></div>
+        <div><h3>Material</h3><img class="square" src="03_physical_attributes/globe/material.png" alt="Globe material"></div>
+      </article>
+    </section>
+
+    <section id="benchmark">
+      <p class="section-kicker">04 · Benchmark articulation</p>
+      <h2>Generated assets under physics-engine joint actuation</h2>
+      <p class="lead">
+        Each video shows the textured, part-decomposed CoVeTwin URDF under
+        PyBullet joint playback. Use the controls to pause, scrub, or replay.
+      </p>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Faucet</div><img src="04_articulation_benchmark/01_faucet_input.png" alt="Faucet input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/01_faucet_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Display</div><img src="04_articulation_benchmark/02_display_input.png" alt="Display input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/02_display_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Carton</div><img src="04_articulation_benchmark/03_carton_input.png" alt="Carton input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/03_carton_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Cart</div><img src="04_articulation_benchmark/04_cart_input.png" alt="Cart input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/04_cart_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Globe</div><img src="04_articulation_benchmark/05_globe_input.png" alt="Globe input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/05_globe_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Laptop</div><img src="04_articulation_benchmark/06_laptop_input.png" alt="Laptop input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/06_laptop_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Input · Storage chest</div><img src="04_articulation_benchmark/07_storage_chest_input.png" alt="Storage chest input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/07_storage_chest_articulation.mp4"></video></div>
+      </article>
+
+      <p class="note">
+        These clips are qualitative articulation demonstrations. The paper's
+        execution-rate table is measured separately with MuJoCo loading and
+        finite-state simulation checks.
+      </p>
+    </section>
+
+    <section id="wild">
+      <p class="section-kicker">05 · Real-world generalization</p>
+      <h2>Articulated reconstruction from ordinary images</h2>
+      <p class="lead">
+        Selected examples demonstrate that CoVeTwin can infer coherent movable
+        structure and detailed appearance from images outside the curated
+        benchmark rendering setup.
+      </p>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Real input · Armchair</div><img src="05_real_world/01_armchair_input.jpg" alt="Armchair input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/01_armchair_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Real input · Scissors</div><img src="05_real_world/02_scissors_input.jpg" alt="Scissors input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/02_scissors_articulation.mp4"></video></div>
+      </article>
+
+      <article class="media-pair">
+        <div class="input"><div class="media-label">Real input · Toilet</div><img src="05_real_world/03_toilet_input.jpg" alt="Toilet input"></div>
+        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/03_toilet_articulation.mp4"></video></div>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    CoVeTwin AAAI media supplement · fully offline · H.264 MP4 and PNG/JPEG assets
+  </footer>
+</body>
+</html>

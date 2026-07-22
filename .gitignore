@@ -1,0 +1,112 @@
+# Large datasets and rendered training data
+/dataset/PhysXNet/
+/dataset/PhysX_mobility/
+/dataset/tmp_mobility/
+/dataset/im_data_obj_sort_new_32_finetune_final/
+/dataset/txt_rep_32_finetune_mobility_all/
+/dataset/*.png
+/dataset/im_data_obj_sort_new_32_finetune*/
+/dataset/im_data_obj_sort_new_32_finetune*.zip
+/dataset/covetwin_training/
+/dataset_toolkits/renders/
+/dataset_toolkits/renders_all/
+/dataset_toolkits/PhysX_mobility/
+/dataset_toolkits/renders_all.tar.gz
+/dataset_toolkits/views.json
+
+# Portable or experimental third-party checkouts
+/dataset_toolkits/blender-3.6/
+/TRELLIS.2/
+
+# Model checkpoints, training runs, and binary packages
+/pretrain/
+/output_*/
+/qwen-vl-finetune/output_*/
+*.ckpt
+*.safetensors
+*.bin
+*.pth
+*.pt
+*.whl
+
+# Inference outputs, ablations, and local image collections
+/test_demo*/
+/test_wild_demo*/
+/test_covetwin*/
+/Ablation/
+/demo_new/
+/wild-demo*/
+
+# Evaluation outputs, videos, heatmaps, and portable simulation packages
+/evaluation_results/
+/evaluation_video*/
+/qualitative_heatmaps*/
+/mujoco/
+/ablation_proxy_summary.json
+/image.png
+docs/
+# Generated 3D and array assets
+*.glb
+*.ply
+*.obj
+*.mp4
+*.npy
+*.npz
+
+# Keep the small repository assets and split definitions listed below.
+!/assets/simulation/desert.png
+!/dataset/splits/testset.npy
+!/dataset/splits/trainingset.npy
+
+# Logs, caches, and temporary files
+*.log
+*.out
+*.tmp
+*.bak
+core
+core.*
+/tmp/
+/tmp_*/
+/wandb/
+/runs/
+events.out.tfevents.*
+nohup.out
+/package-lock.json
+
+# Credentials and local configuration
+.env
+.env.*
+*.pem
+*.key
+*credentials*
+*secret*
+*token*
+*.netrc
+.huggingface/
+**/hf_token*
+
+# The codec name contains "token" but it is source code, not a credential.
+!/covetwin/voxel_token_codec.py
+
+# Python build products and environments
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+/build/
+/dist/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.conda/
+.ruff_cache/
+
+# Editor, agent, and operating-system state
+/.agents/
+/.codex/
+/.agent/
+/.vscode/
+/.idea/
+.DS_Store
+*.swp
