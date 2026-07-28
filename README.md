@@ -2,65 +2,90 @@
 
 # CoVeTwin
 
-### Compact-and-Verified Geometry Modeling for High-Fidelity Articulated Digital Twin Generation from a Single Image
+### Structure-Aware Geometry Compression and Verification for High-Fidelity Articulated Digital Twin Generation from a Single Image
 
-[![Paper](https://img.shields.io/badge/Paper-CoVeTwin-b31b1b.svg)](docs/CoVeTwin.pdf)
-[![Reproducibility](https://img.shields.io/badge/Supplement-Reproducibility-2f855a.svg)](docs/REPRODUCIBILITY.md)
+[![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](paper/CoVeTwin.pdf)
+[![Media Supplement](https://img.shields.io/badge/Media-Supplement-7c3aed.svg)](media_supplement_aaai/index.html)
 [![Python](https://img.shields.io/badge/Python-3.10-blue.svg)](#installation)
-[![MuJoCo](https://img.shields.io/badge/Output-MuJoCo%20%7C%20URDF-2f855a.svg)](#output-format)
+[![Output](https://img.shields.io/badge/Output-URDF%20%7C%20MuJoCo-2f855a.svg)](#outputs)
 [![Tests](https://img.shields.io/badge/tests-13%20passed-brightgreen.svg)](#testing)
 [![License](https://img.shields.io/badge/license-S--Lab-lightgrey.svg)](LICENSE)
 
-CoVeTwin reconstructs a high-fidelity, articulated, physically annotated and
-simulation-ready digital twin from a single RGB or RGBA image. It combines
-compact part-level geometry prediction, structure-aware candidate verification
-and image-conditioned coarse-to-fine flow refinement, then exports refined
-meshes together with semantics, physical attributes and articulation as URDF
-and MuJoCo XML assets.
+**[Paper](paper/CoVeTwin.pdf) ·
+[Media supplement](media_supplement_aaai/README.md) ·
+[Installation](#installation) ·
+[Inference](#inference) ·
+[Evaluation](#evaluation)**
 
-<img src="img/covetwin/method_overview.png" width="100%" alt="CoVeTwin method overview">
+CoVeTwin reconstructs a high-fidelity, articulated, physically annotated and
+simulation-ready digital twin from a single RGB or RGBA image.
+
+<img src="img/covetwin/contribution_overview.png" width="100%" alt="CoVeTwin contribution overview">
 
 </div>
 
-## Highlights
+## Overview
 
-- **Relative shape-span compression.** Consecutive occupied voxel indices are
-  represented using one local reference, relative span offsets and span
-  lengths. The representation is exactly reversible and requires no custom VLM
-  vocabulary.
-- **Structure-verified inference.** CoVeTwin samples multiple geometry
-  candidates for each part, rejects invalid outputs and ranks valid candidates
-  using occupancy and 6-connected-component statistics.
-- **Coarse-to-fine reconstruction.** The verified coarse occupancy and source
-  image condition a flow decoder that restores detailed, textured geometry.
-- **Complete digital twins.** The VLM jointly predicts parts, scale, material,
-  affordance and articulation. Refined part meshes are exported as JSON, GLB,
-  URDF and MuJoCo XML.
-- **Unified evaluation.** The repository evaluates rendering, surface quality,
-  metric scale, physical attributes, articulation and physics-engine execution.
+Single-image articulated reconstruction is severely underconstrained: geometry
+is only partially observed, long geometry sequences are difficult for a vision
+language model (VLM) to predict, and malformed or fragmented coarse geometry
+can propagate into every downstream stage. CoVeTwin addresses these issues with
+two geometry-centered components:
+
+- **Relative occupancy-span compression** converts part-level voxel geometry
+  into a compact, exactly recoverable sequence without introducing a dedicated
+  3D tokenizer. It reduces the average target length from **177,450 to 767
+  tokens per part** (about **231×**) and is 16.5% shorter than absolute spans.
+- **Connectivity-based structure verification** samples multiple coarse
+  geometry candidates, rejects invalid predictions and prioritizes coherent
+  structures before high-resolution reconstruction.
+- **Coarse-to-fine flow refinement** combines the verified coarse occupancy
+  with the source image to restore detailed, textured geometry.
+- **Complete digital-twin export** binds part semantics, material, affordance,
+  scale and articulation to refined meshes and exports JSON, GLB, URDF and
+  MuJoCo XML assets.
+
+<div align="center">
+<img src="img/covetwin/method_overview.png" width="100%" alt="Complete CoVeTwin framework">
+<br>
+<em>CoVeTwin predicts compact part geometry and physical structure, verifies
+coarse candidates, refines the selected structure and exports simulator-ready
+assets.</em>
+</div>
 
 ## Method
 
-### Relative shape-span compression
+Given one image, CoVeTwin:
 
-For an occupied voxel `(x, y, z)` on an `R^3` grid, CoVeTwin first computes
+1. predicts object/part semantics, absolute scale, physical attributes and
+   kinematic relationships with a shared VLM;
+2. represents each part using relative occupancy spans and samples multiple
+   geometry candidates;
+3. filters malformed candidates and evaluates the remaining candidates using
+   voxel occupancy and 6-connectivity statistics;
+4. refines the merged coarse geometry with an image-conditioned flow decoder,
+   transfers part labels and exports the articulated asset.
+
+### Relative occupancy-span compression
+
+For a voxel `(x, y, z)` on an `R³` grid, CoVeTwin uses the lexicographic index
 
 ```text
-q = x * R^2 + y * R + z
+q = x * R² + y * R + z
 ```
 
-Sorted consecutive indices are merged into absolute spans `[s_m, e_m]`. With
-the first span start as the local reference `b`, each span becomes
+Consecutive indices are merged into spans. If `b` is the first span start,
+each span is stored using a relative offset `delta` and length `length`:
 
 ```text
-delta_m  = s_m - b
-length_m = e_m - s_m + 1
+delta  = span_start - b
+length = span_end - span_start + 1
 ```
 
-The canonical model output is therefore:
+The repository protocol serializes a part as:
 
 ```text
-rss b delta_1:length_1 delta_2:length_2 ...
+rss <base> <relative_start>:<length> ...
 ```
 
 For example:
@@ -71,106 +96,115 @@ CoVeTwin:       rss 184 0:1 14:19 46:8
 ```
 
 <div align="center">
-<img src="img/covetwin/representation_comparison.png" width="100%" alt="Geometry representation comparison">
+<img src="img/covetwin/representation_comparison.png" width="100%" alt="Token-count comparison across geometry representations">
+<br>
+<em>From the original mesh sequence to relative occupancy spans: the proposed
+representation preserves exact recovery while substantially shortening the
+VLM target.</em>
 </div>
 
-### Structure-verified voxel candidates
+### Structure verification and refinement
 
-For every part, the VLM samples `K` candidate geometry strings. Unparsable or
-empty candidates are discarded. For a valid candidate, let `n` be its occupied
-voxel count, `c` its number of 6-connected components and `rho` the fraction of
-voxels in its largest component. CoVeTwin selects the candidate with the
-highest score:
+For each part, the VLM samples `K` candidate geometry strings. CoVeTwin first
+rejects candidates that are malformed, empty, overlapping, unordered or
+outside the voxel grid. Valid candidates are assessed using their occupied
+voxel count, number of 6-connected components and largest-component ratio.
+The selected part occupancies are merged, refined by the conditional flow
+decoder and transferred to fine-grained part meshes.
 
-```text
-Q = 100 * rho - 2 * c + min(n, R^3) / R^3
-```
+## Results
 
-The selected part occupancies are merged and passed to the conditional flow
-decoder. Part labels are then transferred from the verified coarse geometry to
-the refined mesh before URDF/XML construction.
+### Geometry and articulation
 
-## Qualitative results
+The following results are evaluated on 388 held-out PhysX-Mobility objects and
+averaged over three inference runs. CD is reported in `×10³`, scale and origin
+errors in centimeters, and axis error in degrees.
 
-CoVeTwin produces complete, high-fidelity articulated assets across synthetic
-and real-world inputs. The comparison below highlights geometry completeness,
-appearance fidelity and articulation quality against representative baselines.
+| Method | PSNR ↑ | CD ↓ | F-score ↑ | Scale Err. ↓ | Joint Acc. ↑ | Axis Err. ↓ | Origin Err. ↓ | Range Err. ↓ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Articulate Anything | 19.362 | 8.005 | 0.815 | **17.191** | 0.631 | 28.863 | 12.823 | 1.245 |
+| PhysX-3D | 15.791 | 2.067 | 0.924 | 25.640 | 0.012 | 60.228 | 20.953 | 0.680 |
+| PhysX-Anything | 18.592 | 1.447 | 0.957 | 26.262 | 0.896 | 0.787 | 9.574 | 0.711 |
+| URDF-Anything+ | 16.898 | 1.615 | 0.945 | 26.723 | 0.452 | 54.648 | 13.341 | 1.107 |
+| **CoVeTwin** | **21.003** | **1.368** | **0.959** | 20.856 | **0.905** | **0.651** | **6.962** | **0.607** |
 
 <div align="center">
-<img src="img/covetwin/lab1.png" width="100%" alt="Qualitative reconstruction comparison across articulated-asset generation methods">
+<img src="img/covetwin/lab1.png" width="100%" alt="Qualitative comparison on annotated and real-world images">
 <br>
-<em>Single-image reconstruction results for URDF-Anything, Articulate-Anything,
-PhysX-3D, PhysX-Anything and CoVeTwin.</em>
+<em>Qualitative comparison on annotated and real-world images. Each method is
+shown in two articulation states.</em>
 </div>
 
-The predicted meshes also support part-level physical-property visualization.
-The heatmaps retain the detailed decoded surfaces rather than displaying only
-the coarse voxel representation.
+### Physical properties and simulation
+
+| Method | Material F1 ↑ | Affordance F1 ↑ | MuJoCo Exec. ↑ | Joint Traj. Err. ↓ | Contact Stability ↑ |
+|---|---:|---:|---:|---:|---:|
+| PhysX-3D | 0.448 | 0.496 | 85.2% | 0.286 | 0.724 |
+| PhysX-Anything | 0.851 | 0.834 | 93.4% | 0.174 | 0.863 |
+| **CoVeTwin** | **0.941** | **0.922** | **100.0%** | **0.128** | **0.917** |
 
 <div align="center">
-<img src="img/covetwin/lab3.png" width="92%" alt="Part-level physical-property heatmap comparison">
+<img src="img/covetwin/lab3.png" width="92%" alt="Spatial binding of predicted physical attributes">
 <br>
-<em>Physical-property heatmaps produced by PhysX-3D, PhysX-Anything and
-CoVeTwin.</em>
+<em>Material-dependent density (top) and affordance (bottom) are bound to the
+refined part surfaces with clear spatial boundaries.</em>
 </div>
 
-Finally, the exported articulated assets can be loaded into a physics engine
-for interaction between independently generated objects.
+<br>
 
 <div align="center">
-<img src="img/covetwin/lab4.png" width="100%" alt="Physics-engine interaction comparison across generated articulated assets">
+<img src="img/covetwin/lab4.png" width="100%" alt="MuJoCo interaction comparison">
 <br>
-<em>Qualitative physics-engine interaction results across the evaluated
-methods.</em>
+<em>Generated assets loaded and actuated in MuJoCo. CoVeTwin maintains coherent
+geometry and stable interaction.</em>
 </div>
 
-## Code structure
+## Ablation
 
-| Component | Implementation |
-|---|---|
-| Relative shape-span codec | [`covetwin/geometry_codec.py`](covetwin/geometry_codec.py) |
-| Candidate validity and Eq. 16 score | [`covetwin/verification.py`](covetwin/verification.py) |
-| Exact conditional flow objective | [`covetwin/flow_matching.py`](covetwin/flow_matching.py) |
-| Representation ablations | [`covetwin/ablation_codecs.py`](covetwin/ablation_codecs.py) |
-| Two-stage VLM inference | [`covetwin/inference.py`](covetwin/inference.py) |
-| Fine-tuning data construction | [`training/build_dataset.py`](training/build_dataset.py) |
-| End-to-end stages 1–4 launcher | [`run_covetwin.py`](run_covetwin.py) |
-| Geometry reasoning and verification | [`pipeline/1_geometry_reasoning.py`](pipeline/1_geometry_reasoning.py) |
-| High-resolution flow decoding | [`pipeline/2_flow_reconstruction.py`](pipeline/2_flow_reconstruction.py) |
-| Coarse-to-fine part-label transfer | [`pipeline/3_part_segmentation.py`](pipeline/3_part_segmentation.py) |
-| JSON, URDF and MJCF export | [`pipeline/4_simulation_export.py`](pipeline/4_simulation_export.py) |
-| Unified quantitative evaluation | [`evaluate_covetwin_metrics.py`](evaluate_covetwin_metrics.py) |
+The full method is compared with voxel coordinates, voxel indices, absolute
+spans and relative occupancy spans without verification. The complete model
+produces more complete geometry, more coherent articulation and more spatially
+consistent physical-property maps.
 
-The numbered backend scripts live in `pipeline/` and retain the stage file
-contracts required by existing checkpoints. `run_covetwin.py` is the public
-end-to-end entry point.
+<div align="center">
+<img src="img/covetwin/ablation_results.png" width="100%" alt="Qualitative ablation of geometry compression and structure verification">
+</div>
 
-## Repository layout
+## Paper and supplementary material
 
-```text
-CoVeTwin/
-├── assets/simulation/        # MuJoCo textures and packaged runtime assets
-├── configs/                  # TRELLIS model configurations
-├── covetwin/                 # Compression, verification, flow, and VLM logic
-├── dataset/                  # Preprocessing scripts, prompts, and split metadata
-├── dataset_toolkits/         # Blender rendering and dataset utilities
-├── demo/                     # Small tracked inference examples
-├── docs/                     # Paper and project documents
-├── evaluation/               # Unified metrics and isolated render/physics workers
-├── img/covetwin/             # Figures used by this README
-├── pipeline/                 # Numbered inference stages 1--4
-├── qwen-vl-finetune/         # Qwen2.5-VL fine-tuning stack
-├── qwen-vl-utils/            # Local Qwen-VL image-processing utilities
-├── tests/                    # Deterministic unit and contract tests
-├── tools/                    # Downloads, visualization, ablations, and benchmarks
-├── training/                 # CoVeTwin training-data construction
-├── trellis/                  # High-resolution 3D decoder implementation
-├── evaluate_covetwin_metrics.py
-└── run_covetwin.py
-```
+- **Main paper:** [CoVeTwin.pdf](paper/CoVeTwin.pdf)
+- **Offline media gallery:** clone or download the repository, then open
+  [`media_supplement_aaai/index.html`](media_supplement_aaai/index.html) in a
+  modern browser.
+- **Media guide:** [contents and viewing order](media_supplement_aaai/README.md)
 
-Large datasets, checkpoints, local experiments, generated meshes, videos, and
-evaluation outputs are intentionally excluded by `.gitignore`.
+The media supplement contains benchmark articulation playback, real-world
+examples, cross-method dynamics and controlled dynamic ablations. The static
+overview below previews the shared-input cross-method comparison.
+
+<div align="center">
+<a href="media_supplement_aaai/index.html">
+<img src="media_supplement_aaai/06_cross_method_dynamics/00_cross_method_overview.png" width="100%" alt="Cross-method dynamics overview">
+</a>
+</div>
+
+<details>
+<summary><strong>Additional method details: verification and flow refinement</strong></summary>
+<br>
+<img src="img/covetwin/appendix_verification_flow.png" width="100%" alt="Detailed structure verification and flow refinement">
+</details>
+
+<details>
+<summary><strong>Additional AKB-48 qualitative results</strong></summary>
+<br>
+<img src="img/covetwin/appendix_akb48.png" width="100%" alt="Qualitative comparison on AKB-48">
+</details>
+
+<details>
+<summary><strong>Simulation under external forces and object contact</strong></summary>
+<br>
+<img src="img/covetwin/appendix_simulation_robustness.png" width="100%" alt="Simulation under wind and object contact">
+</details>
 
 ## Installation
 
@@ -182,21 +216,20 @@ conda activate covetwin
 pip install -r requirements.txt
 ```
 
-To compile the CUDA extensions used by the high-resolution decoder, the
-existing setup helper can be used:
+Compile the CUDA extensions required by the high-resolution decoder:
 
 ```bash
 . ./setup.sh --basic --xformers --flash-attn --diffoctreerast \
   --spconv --mipgaussian --kaolin --nvdiffrast
 ```
 
-The VLM stage additionally requires:
+Install the VLM dependencies:
 
 ```bash
 pip install transformers==4.50.0 qwen-vl-utils 'accelerate>=0.26.0'
 ```
 
-All Hugging Face commands in this project support the mirror endpoint:
+Hugging Face downloads can use the mirror endpoint:
 
 ```bash
 export HF_ENDPOINT=https://hf-mirror.com
@@ -204,59 +237,98 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 ## Checkpoints
 
-The decoder expects its weights under `pretrain/decoder`. A CoVeTwin VLM
-checkpoint must be trained on the relative shape-span protocol or placed at a
-custom path and supplied through `--ckpt`.
-
-Download the compatible base checkpoints through the configured Hugging Face
-mirror with:
+Download the compatible base checkpoints:
 
 ```bash
 HF_ENDPOINT=https://hf-mirror.com python tools/download_checkpoints.py
 ```
 
-The legacy `pretrain/vlm` checkpoint was trained for an absolute-span response
-format and is not automatically a CoVeTwin checkpoint. The strict CoVeTwin
-parser intentionally rejects legacy responses that do not follow the `rss`
-protocol.
-
-Expected layout:
+The decoder expects weights under `pretrain/decoder`. Place a CoVeTwin VLM
+checkpoint trained with the relative occupancy-span protocol under
+`pretrain/covetwin_vlm`, or pass a custom path through `--ckpt`.
 
 ```text
 pretrain/
-├── decoder/
-└── covetwin_vlm/
+|-- decoder/
+`-- covetwin_vlm/
 ```
+
+The legacy `pretrain/vlm` checkpoint uses an absolute-span response format and
+is not a drop-in CoVeTwin checkpoint.
+
+## Inference
+
+Place one input image per object in a directory. The filename stem becomes the
+sample ID.
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com \
+CUDA_VISIBLE_DEVICES=0,1,2,3 \
+python run_covetwin.py \
+  --demo-path demo \
+  --output-path test_covetwin \
+  --ckpt pretrain/covetwin_vlm \
+  --candidate-count 5 \
+  --stages 1 2 3 4
+```
+
+Use `--remove-bg` for ordinary photographs that require foreground extraction.
+Keep the default `--no-remove-bg` for RGBA images or clean rendered inputs.
+Use `--dry-run` to inspect all stage commands without loading the models.
+
+### Selected samples or stages
+
+```bash
+# Run only samples 0 and 10.
+python run_covetwin.py \
+  --demo-path demo \
+  --output-path test_covetwin \
+  --ckpt pretrain/covetwin_vlm \
+  --only 0 10
+
+# Run only refinement, part transfer and simulator export.
+python run_covetwin.py \
+  --demo-path demo \
+  --output-path test_covetwin \
+  --stages 2 3 4
+```
+
+## Outputs
+
+```text
+test_covetwin/<sample_id>/
+|-- basic_info.txt
+|-- coord_<part>.txt
+|-- ind_<part>.npy
+|-- allind.npy
+|-- candidates/
+|   `-- part_<part>/candidate_<k>.txt
+|-- candidate_verification.json
+|-- sample.glb
+|-- objs/<part>/<part>.obj
+|-- basic_info.json
+|-- basic.urdf
+`-- basic.xml
+```
+
+`candidate_verification.json` records candidate validity, occupancy and
+connectivity statistics, and the selected candidate for each part.
+`basic.urdf` supports URDF-compatible engines; `basic.xml` is the MuJoCo asset.
 
 ## Training
 
-The exact dataset split, hyperparameters, random seeds, hardware/software
-environment, metric formulas, and known protocol limitations are documented in
-the [reproducibility and technical supplement](docs/REPRODUCIBILITY.md).
-
-### 1. Build two-stage conversations
-
-The following command builds Qwen-VL records from PhysX-Mobility voxel labels,
-structured descriptions and rendered views:
+Build the two-turn Qwen-VL training records from PhysX-Mobility:
 
 ```bash
-mapfile -t TRAIN_IDS < <(
-  python -c "import numpy as np; print(*np.load('dataset/splits/trainingset.npy', allow_pickle=True).tolist(), sep='\n')"
-)
-
 python training/build_dataset.py \
   --voxel-root dataset/tmp_mobility/partseg \
   --structure-root dataset/txt_rep_32_finetune_mobility_all \
   --image-root dataset_toolkits/renders_all \
   --representation relative_span \
-  --only "${TRAIN_IDS[@]}" \
   --output dataset/covetwin_training/conversations_train.json
 ```
 
-Each record contains a global prediction turn for parts, articulation and
-physical attributes, followed by a part-specific relative shape-span turn.
-
-### 2. Fine-tune Qwen2.5-VL
+Then fine-tune Qwen2.5-VL:
 
 ```bash
 cd qwen-vl-finetune
@@ -271,108 +343,10 @@ export OUTPUT_DIR=./output_covetwin_7b
 bash scripts/run_sft_covetwin.sh
 ```
 
-`MODEL`, `EPOCHS`, `BATCH_SIZE`, `GRAD_ACCUM_STEPS`, `MODEL_MAX_LENGTH` and
-other settings can be overridden through environment variables.
-
-## Inference
-
-Place one image per object in an input directory. Its filename stem becomes the
-sample ID.
-
-### Complete pipeline
-
-```bash
-cd /path/to/CoVeTwin
-
-HF_ENDPOINT=https://hf-mirror.com \
-CUDA_VISIBLE_DEVICES=0,1,2,3 \
-python run_covetwin.py \
-  --demo-path demo \
-  --output-path test_covetwin \
-  --ckpt qwen-vl-finetune/output_covetwin_7b \
-  --candidate-count 5 \
-  --stages 1 2 3 4
-```
-
-Use `--remove-bg` for ordinary photographs when foreground extraction is
-needed. Keep the default `--no-remove-bg` for RGBA images or clean rendered
-inputs. Use `--dry-run` to print all stage commands without loading models.
-
-### Selected samples or stages
-
-```bash
-# Run only samples 0 and 10.
-python run_covetwin.py \
-  --demo-path demo \
-  --output-path test_covetwin \
-  --ckpt pretrain/covetwin_vlm \
-  --only 0 10
-
-# Run only decoding, part transfer and simulation-ready export.
-python run_covetwin.py \
-  --demo-path demo \
-  --output-path test_covetwin \
-  --stages 2 3 4
-```
-
-## Output format
-
-```text
-test_covetwin/<sample_id>/
-├── basic_info.txt
-├── coord_<part>.txt
-├── ind_<part>.npy
-├── allind.npy
-├── candidates/
-│   └── part_<part>/candidate_<k>.txt
-├── candidate_verification.json
-├── sample.glb
-├── objs/<part>/<part>.obj
-├── basic_info.json
-├── basic.urdf
-└── basic.xml
-```
-
-`candidate_verification.json` stores validity, occupied voxel count, component
-count, largest-component ratio, verification score and the selected candidate
-for every part. `basic.urdf` can be loaded by URDF-compatible engines, while
-`basic.xml` is the MuJoCo asset.
-
-## Ablation studies
-
-The four geometry-representation datasets use the same train-only object list
-and prompts apart from their serialization. Load `TRAIN_IDS` as shown in the
-training section before running:
-
-```bash
-for rep in voxel index absolute_span relative_span; do
-  python training/build_dataset.py \
-    --representation "${rep}" \
-    --only "${TRAIN_IDS[@]}" \
-    --output "dataset/covetwin_training/${rep}.json"
-done
-```
-
-The no-verification variant selects candidate zero without score-based ranking:
-
-```bash
-python run_covetwin.py \
-  --demo-path demo \
-  --output-path test_covetwin_noverification \
-  --ckpt pretrain/covetwin_vlm \
-  --candidate-count 5 \
-  --no-verify-candidates \
-  --stages 1 2 3 4
-```
-
-<div align="center">
-<img src="img/covetwin/ablation_results.png" width="100%" alt="CoVeTwin qualitative ablation">
-</div>
-
 ## Evaluation
 
-The unified evaluator supports CoVeTwin and the Articulate-Anything,
-URDF-Anything and PhysX-3D baselines under one protocol:
+The unified evaluator covers rendering, surface quality, metric scale,
+physical attributes, articulation and physics-engine execution:
 
 ```bash
 python evaluate_covetwin_metrics.py \
@@ -382,53 +356,60 @@ python evaluate_covetwin_metrics.py \
   --output-dir evaluation_results/covetwin
 ```
 
-Optional baseline roots can be added with `--articulate-roots`,
+Optional baseline roots can be supplied through `--articulate-roots`,
 `--urdf-anything-roots` and `--physx3d-roots`.
 
-The evaluator reports:
+## Code structure
 
-- PSNR, Chamfer Distance and F-score;
-- absolute metric-scale error;
-- material and affordance macro-F1;
-- joint-type accuracy;
-- joint-axis, origin and motion-range errors;
-- physics-engine execution success rate.
+| Component | Implementation |
+|---|---|
+| Relative occupancy-span codec | [`covetwin/geometry_codec.py`](covetwin/geometry_codec.py) |
+| Candidate validity and verification | [`covetwin/verification.py`](covetwin/verification.py) |
+| Conditional flow objective | [`covetwin/flow_matching.py`](covetwin/flow_matching.py) |
+| Two-turn VLM inference | [`covetwin/inference.py`](covetwin/inference.py) |
+| Fine-tuning data construction | [`training/build_dataset.py`](training/build_dataset.py) |
+| End-to-end launcher | [`run_covetwin.py`](run_covetwin.py) |
+| Geometry reasoning | [`pipeline/1_geometry_reasoning.py`](pipeline/1_geometry_reasoning.py) |
+| High-resolution flow decoding | [`pipeline/2_flow_reconstruction.py`](pipeline/2_flow_reconstruction.py) |
+| Part-label transfer | [`pipeline/3_part_segmentation.py`](pipeline/3_part_segmentation.py) |
+| URDF and MJCF export | [`pipeline/4_simulation_export.py`](pipeline/4_simulation_export.py) |
+| Unified evaluation | [`evaluate_covetwin_metrics.py`](evaluate_covetwin_metrics.py) |
 
 ## Testing
 
-The codec, candidate verifier, flow objective, ablation formats and stage-1
-file contract are covered by deterministic tests:
+The deterministic test suite covers geometry codecs, candidate verification,
+the flow objective, ablation formats and the stage-1 file contract:
 
 ```bash
 python -m unittest discover -s tests -p 'test_covetwin*.py' -v
 ```
 
-The current suite contains 13 tests and does not require loading VLM or decoder
-weights.
+The 13 tests do not require VLM or decoder weights.
 
 ## Citation
 
 The manuscript is currently anonymized. Replace the author field with the
-camera-ready author list when it becomes available.
+camera-ready author list when available.
 
 ```bibtex
 @article{covetwin2026,
-  title   = {CoVeTwin: Compact-and-Verified Geometry Modeling for High-Fidelity
-             Articulated Digital Twin Generation from a Single Image},
-  author  = {CoVeTwin Authors},
-  year    = {2026}
+  title  = {CoVeTwin: Structure-Aware Geometry Compression and Verification
+            for High-Fidelity Articulated Digital Twin Generation from a
+            Single Image},
+  author = {CoVeTwin Authors},
+  year   = {2026}
 }
 ```
 
 ## Acknowledgements
 
 CoVeTwin builds on Qwen2.5-VL, TRELLIS and the simulation-ready asset pipeline
-and data conventions established by PhysX-Anything and PhysX-Mobility. We thank
-the authors and maintainers of these projects. Third-party components and
-datasets remain subject to their respective licenses.
+and data conventions established by PhysX-Anything and PhysX-Mobility. We
+thank the authors and maintainers of these projects. Third-party components
+and datasets remain subject to their respective licenses.
 
 ## License
 
-This repository is distributed under the [S-Lab License 1.0](LICENSE). It is
-available for non-commercial use; commercial use requires permission from the
-contributors, as specified in the license.
+This repository is distributed under the [S-Lab License 1.0](LICENSE) for
+non-commercial use. Commercial use requires permission from the contributors,
+as specified in the license.

@@ -50,6 +50,7 @@ docs/
 *.ply
 *.obj
 *.mp4
+!/media_supplement_aaai/**/*.mp4
 *.npy
 *.npz
 

@@ -312,6 +312,59 @@
       background: white;
     }
 
+    .comparison-case {
+      margin-top: 24px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f8faf9;
+    }
+
+    .comparison-case h3 {
+      margin: 0 0 12px;
+      color: var(--accent-dark);
+      font-size: 1.1rem;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .comparison-card {
+      min-width: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: white;
+    }
+
+    .comparison-card.ours {
+      border: 3px solid var(--accent);
+    }
+
+    .comparison-card img,
+    .comparison-card video,
+    .missing-output {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #eef2f1;
+    }
+
+    .missing-output {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      color: #7a3f3f;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-align: center;
+      background: #fff2f2;
+    }
+
     .note {
       margin: 22px 0 0;
       padding: 16px 18px;
@@ -328,8 +381,176 @@
       text-align: center;
     }
 
+    /* ── Section 03 · Compact attribute grid ── */
+    .attr-compact {
+      margin-top: 20px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: #f8faf9;
+    }
+
+    .attr-grid {
+      display: grid;
+      grid-template-columns: 116px repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .attr-grid .hdr {
+      padding: 9px 8px;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--accent);
+      border-radius: 10px 10px 6px 6px;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+      background: white;
+    }
+
+    .attr-grid .hdr:first-child {
+      border-color: transparent;
+      background: transparent;
+    }
+
+    .attr-grid .lbl {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-width: 0;
+      padding: 8px 6px;
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--accent-dark);
+      background: #edf7f1;
+    }
+
+    .attr-grid .lbl img {
+      width: 100px;
+      height: 100px;
+      object-fit: contain;
+      border: 0;
+      border-radius: 0;
+      background: white;
+    }
+
+    .attr-grid > img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      border: 1px solid #e7ece9;
+      border-radius: 10px;
+      background: white;
+    }
+
+    /* ── Section 04 · Compact benchmark grid ── */
+    .bench-compact {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .bench-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--accent);
+      border-radius: 16px;
+      background: white;
+      box-shadow: 0 6px 16px rgba(20, 42, 34, 0.05);
+    }
+
+    .bench-card .bname {
+      padding: 9px 10px 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--accent-dark);
+      text-align: center;
+      background: white;
+    }
+
+    .bench-card .brow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .bench-card .bcol {
+      border-right: 1px solid var(--line);
+    }
+
+    .bench-card .bcol:last-child { border-right: 0; }
+
+    .bench-card .bcol-lbl {
+      padding: 6px;
+      border-bottom: 1px solid #e7ece9;
+      font-size: 0.64rem;
+      font-weight: 800;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      text-align: center;
+      color: var(--muted);
+      background: #f8faf9;
+    }
+
+    .bench-card img,
+    .bench-card video {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #f7f9f8;
+    }
+
+    @media (max-width: 1000px) {
+      .bench-compact {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .attr-grid {
+        grid-template-columns: 82px repeat(4, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .attr-compact {
+        padding: 8px;
+      }
+
+      .attr-grid .hdr {
+        padding: 7px 3px;
+        font-size: 0.68rem;
+      }
+
+      .attr-grid .lbl {
+        padding: 5px 3px;
+        font-size: 0.56rem;
+      }
+
+      .attr-grid .lbl img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .bench-compact {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 1000px) {
       .grid-5 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .comparison-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
@@ -342,7 +563,8 @@
       .grid-2,
       .grid-3,
       .grid-5,
-      .media-pair {
+      .media-pair,
+      .comparison-grid {
         grid-template-columns: 1fr;
       }
 
@@ -364,8 +586,8 @@
       <p class="eyebrow">AAAI Media Supplement</p>
       <h1>CoVeTwin</h1>
       <p>
-        Compact-and-Verified Geometry Modeling for High-Fidelity Articulated
-        Digital Twin Generation from a Single Image
+        Structure-Aware Geometry Compression and Verification for High-Fidelity
+        Articulated Digital Twin Generation from a Single Image
       </p>
       <nav aria-label="Supplement sections">
         <a href="#method">Method</a>
@@ -373,6 +595,8 @@
         <a href="#attributes">Physical attributes</a>
         <a href="#benchmark">Benchmark playback</a>
         <a href="#wild">Real-world examples</a>
+        <a href="#method-comparison">Cross-method dynamics</a>
+        <a href="#dynamic-ablation">Dynamic ablation</a>
       </nav>
     </div>
   </header>
@@ -391,7 +615,7 @@
       <figure class="hero-figure">
         <img src="01_method/01_method_overview.png" alt="Complete CoVeTwin method overview">
         <figcaption>
-          End-to-end method: relative shape-span prediction, structure-aware
+          End-to-end method: relative occupancy-span prediction, connectivity-based
           candidate verification, coarse-to-fine flow refinement, part
           decomposition, and simulator-ready export.
         </figcaption>
@@ -400,7 +624,7 @@
       <figure class="hero-figure">
         <img src="01_method/02_representation_comparison.png" alt="Geometry representation comparison">
         <figcaption>
-          Numerical serialization comparison. Relative shape spans remove
+          Numerical serialization comparison. Relative occupancy spans remove
           repeated absolute positions while remaining exactly reversible.
         </figcaption>
       </figure>
@@ -453,7 +677,7 @@
         </article>
 
         <article class="card variant">
-          <h3>Without verification</h3>
+          <h3>w/o verification</h3>
           <div class="variant-grid">
             <img src="02_ablation/08_globe_no_verification_affordance.png" alt="No-verification affordance">
             <img src="02_ablation/09_globe_no_verification_material.png" alt="No-verification material">
@@ -481,38 +705,30 @@
         material regions.
       </p>
 
-      <div class="attribute-key">
-        <img src="03_physical_attributes/affordance_colorbar.png" alt="Affordance color scale">
-        <img src="03_physical_attributes/material_colorbar.png" alt="Material color scale">
+      <div class="attr-compact">
+        <div class="attr-grid">
+          <div class="hdr"></div>
+          <div class="hdr">Faucet</div>
+          <div class="hdr">Carton</div>
+          <div class="hdr">Cart</div>
+          <div class="hdr">Globe</div>
+          <div class="lbl">Input</div>
+          <img src="03_physical_attributes/faucet/input.png" alt="Faucet input">
+          <img src="03_physical_attributes/carton/input.png" alt="Carton input">
+          <img src="03_physical_attributes/cart/input.png" alt="Cart input">
+          <img src="03_physical_attributes/globe/input.png" alt="Globe input">
+          <div class="lbl"><img src="03_physical_attributes/affordance_colorbar.png" alt="">Afford.</div>
+          <img src="03_physical_attributes/faucet/affordance.png" alt="Faucet affordance">
+          <img src="03_physical_attributes/carton/affordance.png" alt="Carton affordance">
+          <img src="03_physical_attributes/cart/affordance.png" alt="Cart affordance">
+          <img src="03_physical_attributes/globe/affordance.png" alt="Globe affordance">
+          <div class="lbl"><img src="03_physical_attributes/material_colorbar.png" alt="">Material</div>
+          <img src="03_physical_attributes/faucet/material.png" alt="Faucet material">
+          <img src="03_physical_attributes/carton/material.png" alt="Carton material">
+          <img src="03_physical_attributes/cart/material.png" alt="Cart material">
+          <img src="03_physical_attributes/globe/material.png" alt="Globe material">
+        </div>
       </div>
-
-      <article class="triple">
-        <div class="object-title">Faucet handle</div>
-        <div><h3>Input</h3><img class="square" src="03_physical_attributes/faucet/input.png" alt="Faucet input"></div>
-        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/faucet/affordance.png" alt="Faucet affordance"></div>
-        <div><h3>Material</h3><img class="square" src="03_physical_attributes/faucet/material.png" alt="Faucet material"></div>
-      </article>
-
-      <article class="triple">
-        <div class="object-title">Articulated carton</div>
-        <div><h3>Input</h3><img class="square" src="03_physical_attributes/carton/input.png" alt="Carton input"></div>
-        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/carton/affordance.png" alt="Carton affordance"></div>
-        <div><h3>Material</h3><img class="square" src="03_physical_attributes/carton/material.png" alt="Carton material"></div>
-      </article>
-
-      <article class="triple">
-        <div class="object-title">Cart</div>
-        <div><h3>Input</h3><img class="square" src="03_physical_attributes/cart/input.png" alt="Cart input"></div>
-        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/cart/affordance.png" alt="Cart affordance"></div>
-        <div><h3>Material</h3><img class="square" src="03_physical_attributes/cart/material.png" alt="Cart material"></div>
-      </article>
-
-      <article class="triple">
-        <div class="object-title">Globe</div>
-        <div><h3>Input</h3><img class="square" src="03_physical_attributes/globe/input.png" alt="Globe input"></div>
-        <div><h3>Affordance</h3><img class="square" src="03_physical_attributes/globe/affordance.png" alt="Globe affordance"></div>
-        <div><h3>Material</h3><img class="square" src="03_physical_attributes/globe/material.png" alt="Globe material"></div>
-      </article>
     </section>
 
     <section id="benchmark">
@@ -523,40 +739,7 @@
         PyBullet joint playback. Use the controls to pause, scrub, or replay.
       </p>
 
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Faucet</div><img src="04_articulation_benchmark/01_faucet_input.png" alt="Faucet input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/01_faucet_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Display</div><img src="04_articulation_benchmark/02_display_input.png" alt="Display input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/02_display_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Carton</div><img src="04_articulation_benchmark/03_carton_input.png" alt="Carton input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/03_carton_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Cart</div><img src="04_articulation_benchmark/04_cart_input.png" alt="Cart input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/04_cart_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Globe</div><img src="04_articulation_benchmark/05_globe_input.png" alt="Globe input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/05_globe_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Laptop</div><img src="04_articulation_benchmark/06_laptop_input.png" alt="Laptop input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/06_laptop_articulation.mp4"></video></div>
-      </article>
-
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Input · Storage chest</div><img src="04_articulation_benchmark/07_storage_chest_input.png" alt="Storage chest input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="04_articulation_benchmark/07_storage_chest_articulation.mp4"></video></div>
-      </article>
+      <div id="bench-compact-grid" class="bench-compact"></div>
 
       <p class="note">
         These clips are qualitative articulation demonstrations. The paper's
@@ -574,25 +757,222 @@
         benchmark rendering setup.
       </p>
 
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Real input · Armchair</div><img src="05_real_world/01_armchair_input.jpg" alt="Armchair input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/01_armchair_articulation.mp4"></video></div>
-      </article>
+      <div id="real-world-cases"></div>
+      <p class="note">
+        Real-world cross-method comparison. Each row shows the photographed
+        input followed by five methods under the same articulation controls.
+      </p>
+    </section>
 
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Real input · Scissors</div><img src="05_real_world/02_scissors_input.jpg" alt="Scissors input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/02_scissors_articulation.mp4"></video></div>
-      </article>
+    <section id="method-comparison">
+      <p class="section-kicker">06 · Cross-method dynamics</p>
+      <h2>Common-input articulation comparison across methods</h2>
+      <p class="lead">
+        Seven benchmark inputs are replayed under the same viewer and physics
+        controls. Each row compares Articulate Anything, PhysX-3D,
+        PhysX-Anything, URDF-Anything, and CoVeTwin. The broad comparison makes
+        missing outputs, fragmented geometry, incomplete parts, and unstable
+        articulation directly inspectable rather than relying on selected
+        still frames alone.
+      </p>
 
-      <article class="media-pair">
-        <div class="input"><div class="media-label">Real input · Toilet</div><img src="05_real_world/03_toilet_input.jpg" alt="Toilet input"></div>
-        <div class="result"><div class="media-label">CoVeTwin articulation</div><video controls muted loop playsinline preload="metadata" src="05_real_world/03_toilet_articulation.mp4"></video></div>
-      </article>
+      <figure class="hero-figure">
+        <img src="06_cross_method_dynamics/00_cross_method_overview.png" alt="Broad static comparison of baselines and CoVeTwin over two articulation states">
+        <figcaption>
+          Static overview from the paper. Paired renderings show two
+          articulation states; the green-bordered column is CoVeTwin.
+        </figcaption>
+      </figure>
+
+      <div id="cross-method-cases"></div>
+      <p class="note">
+        Each card points to the method output for the same input. All videos
+        are H.264 MP4 playbacks under PyBullet joint control.
+      </p>
+    </section>
+
+    <section id="dynamic-ablation">
+      <p class="section-kicker">07 · Dynamic ablation</p>
+      <h2>Representation and verification effects over complete motion</h2>
+      <p class="lead">
+        Every benchmark case is shown with direct voxel coordinates, absolute
+        voxel indices, absolute spans, relative occupancy spans without verification,
+        and the complete CoVeTwin model. The first four variants isolate the
+        geometry target, while the last pair isolates
+        connectivity-based candidate verification.
+      </p>
+      <div id="dynamic-ablation-cases"></div>
+      <p class="note">
+        These videos are qualitative PyBullet playbacks. They complement, but
+        do not replace, the separately reported MuJoCo execution-rate test.
+      </p>
     </section>
   </main>
 
   <footer>
     CoVeTwin AAAI media supplement · fully offline · H.264 MP4 and PNG/JPEG assets
   </footer>
+
+  <script>
+    const mediaCases = [
+      { key: "01_faucet", name: "Faucet", input: "04_articulation_benchmark/01_faucet_input.png" },
+      { key: "02_display", name: "Display", input: "04_articulation_benchmark/02_display_input.png" },
+      { key: "03_carton", name: "Carton", input: "04_articulation_benchmark/03_carton_input.png" },
+      { key: "04_cart", name: "Cart", input: "04_articulation_benchmark/04_cart_input.png" },
+      { key: "05_globe", name: "Globe", input: "04_articulation_benchmark/05_globe_input.png" },
+      { key: "06_laptop", name: "Laptop", input: "04_articulation_benchmark/06_laptop_input.png" }
+    ];
+
+    const comparisonMethods = [
+      { label: "Articulate-Any.", file: "01_articulate_anything.mp4" },
+      { label: "PhysX-3D", file: "02_physx_3d.mp4" },
+      { label: "PhysX-Any.", file: "03_physx_anything.mp4" },
+      { label: "URDF-Any.", file: "04_urdf_anything.mp4" },
+      { label: "CoVeTwin", file: "05_covetwin.mp4", ours: true }
+    ];
+
+    const ablationMethods = [
+      { label: "Voxel coordinate", file: "01_voxel_coordinate.mp4" },
+      { label: "Voxel index", file: "02_voxel_index.mp4" },
+      { label: "Absolute span", file: "03_absolute_span.mp4" },
+      { label: "w/o verification", file: "04_without_verification.mp4" },
+      { label: "Full CoVeTwin", file: "05_covetwin.mp4", ours: true }
+    ];
+
+    const realWorldCases = [
+      { key: "01_picture_frame", name: "Picture Frame", input: "05_real_world/01_picture_frame_input.jpg" },
+      { key: "02_storage_box",  name: "Storage Box",   input: "05_real_world/02_storage_box_input.jpg" },
+      { key: "03_toilet",       name: "Toilet",        input: "05_real_world/03_toilet_input.png" },
+      { key: "04_switch",       name: "Switch",        input: "05_real_world/04_switch_input.jpg" }
+    ];
+
+    function makeInputCard(item) {
+      const card = document.createElement("article");
+      card.className = "comparison-card";
+      card.innerHTML = `<div class="media-label">Input</div><img src="${item.input}" alt="${item.name} input">`;
+      return card;
+    }
+
+    function makeVideoCard(label, src, ours, missing) {
+      const card = document.createElement("article");
+      card.className = `comparison-card${ours ? " ours" : ""}`;
+      const heading = document.createElement("div");
+      heading.className = "media-label";
+      heading.textContent = label;
+      card.appendChild(heading);
+      if (missing) {
+        const notice = document.createElement("div");
+        notice.className = "missing-output";
+        notice.textContent = "No retained generated output";
+        card.appendChild(notice);
+      } else {
+        const video = document.createElement("video");
+        video.controls = true;
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        video.src = src;
+        card.appendChild(video);
+      }
+      return card;
+    }
+
+    function renderCases(targetId, root, cases, methods, missingRule) {
+      const target = document.getElementById(targetId);
+      cases.forEach((item) => {
+        const group = document.createElement("article");
+        group.className = "comparison-case";
+        const title = document.createElement("h3");
+        title.textContent = item.name;
+        group.appendChild(title);
+        const grid = document.createElement("div");
+        grid.className = "comparison-grid";
+        grid.appendChild(makeInputCard(item));
+        methods.forEach((method) => {
+          const missing = missingRule ? missingRule(item, method) : false;
+          const src = `${root}/${item.key}/${method.file}`;
+          grid.appendChild(makeVideoCard(method.label, src, method.ours, missing));
+        });
+        group.appendChild(grid);
+        target.appendChild(group);
+      });
+    }
+
+    renderCases(
+      "cross-method-cases",
+      "06_cross_method_dynamics",
+      mediaCases,
+      comparisonMethods
+    );
+    renderCases("dynamic-ablation-cases", "07_dynamic_ablation", mediaCases, ablationMethods);
+    renderCases("real-world-cases", "05_real_world", realWorldCases, comparisonMethods);
+
+    const benchCases = [
+      { key: "07_8848", name: "Mug" },
+      { key: "09_48169", name: "Chest of Drawers" },
+      { key: "10_100760", name: "Globe" },
+      { key: "12_10626", name: "Laptop" },
+      { key: "15_100509", name: "Cart" },
+      { key: "19_30869", name: "Workbench Table" },
+      { key: "23_8983", name: "Door Set" },
+      { key: "25_100061", name: "USB Drive" },
+      { key: "26_101048", name: "Luggage" },
+      { key: "28_7054", name: "Clock" },
+      { key: "29_100849", name: "Toggle Switch" },
+      { key: "34_102070", name: "Axial Cooling Fan" }
+    ];
+
+    function renderBenchmark() {
+      const target = document.getElementById("bench-compact-grid");
+      benchCases.forEach((item) => {
+        const card = document.createElement("article");
+        card.className = "bench-card";
+        const name = document.createElement("div");
+        name.className = "bname";
+        name.textContent = item.name;
+        card.appendChild(name);
+        const row = document.createElement("div");
+        row.className = "brow";
+        const inputCol = document.createElement("div");
+        inputCol.className = "bcol";
+        const inputLabel = document.createElement("div");
+        inputLabel.className = "bcol-lbl";
+        inputLabel.textContent = "Input";
+        inputCol.appendChild(inputLabel);
+        const inputImg = document.createElement("img");
+        inputImg.src = `04_articulation_benchmark/${item.key}_input.png`;
+        inputImg.alt = `${item.name} input`;
+        inputCol.appendChild(inputImg);
+        row.appendChild(inputCol);
+        const videoCol = document.createElement("div");
+        videoCol.className = "bcol";
+        const videoLabel = document.createElement("div");
+        videoLabel.className = "bcol-lbl";
+        videoLabel.textContent = "Articulation";
+        videoCol.appendChild(videoLabel);
+        const video = document.createElement("video");
+        video.controls = true;
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        video.preload = "metadata";
+        video.src = `04_articulation_benchmark/${item.key}_articulation.mp4`;
+        video.onerror = function() {
+          this.style.display = 'none';
+          const notice = document.createElement("div");
+          notice.className = "missing-output";
+          notice.textContent = "Video not available";
+          this.parentNode.appendChild(notice);
+        };
+        videoCol.appendChild(video);
+        row.appendChild(videoCol);
+        card.appendChild(row);
+        target.appendChild(card);
+      });
+    }
+
+    renderBenchmark();
+  </script>
 </body>
 </html>
