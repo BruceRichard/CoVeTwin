@@ -8,7 +8,7 @@
 [![Media Supplement](https://img.shields.io/badge/Media-Supplement-7c3aed.svg)](media_supplement_aaai/index.html)
 [![Python](https://img.shields.io/badge/Python-3.10-blue.svg)](#installation)
 [![Output](https://img.shields.io/badge/Output-URDF%20%7C%20MuJoCo-2f855a.svg)](#outputs)
-[![Tests](https://img.shields.io/badge/tests-13%20passed-brightgreen.svg)](#testing)
+[![Tests](https://img.shields.io/badge/tests-70%20passed-brightgreen.svg)](#testing)
 [![License](https://img.shields.io/badge/license-S--Lab-lightgrey.svg)](LICENSE)
 
 **[Paper](paper/CoVeTwin.pdf) ·
@@ -106,11 +106,14 @@ VLM target.</em>
 ### Structure verification and refinement
 
 For each part, the VLM samples `K` candidate geometry strings. CoVeTwin first
-rejects candidates that are malformed, empty, overlapping, unordered or
-outside the voxel grid. Valid candidates are assessed using their occupied
-voxel count, number of 6-connected components and largest-component ratio.
-The selected part occupancies are merged, refined by the conditional flow
-decoder and transferred to fine-grained part meshes.
+rejects candidates that fail any of the named validity rules
+(`parse_failure`, `empty_voxel_set`, `non_positive_length`,
+`non_monotonic_span_order`, `overlapping_or_duplicate_spans`,
+`out_of_grid_indices`). Valid candidates are ranked lexicographically on the
+largest-component ratio, the negative component count and the occupied voxel
+count, with ties keeping the earliest sample. The selected part occupancies
+are merged, refined by the conditional flow decoder and transferred to
+fine-grained part meshes.
 
 ## Results
 
@@ -293,6 +296,38 @@ python run_covetwin.py \
   --stages 2 3 4
 ```
 
+### Candidate selection rules
+
+Stage 1 selects among the `K` sampled candidates per part with a configurable
+rule (`--selection-rule`, seeded by `--selection-seed`):
+
+| Rule | Behavior |
+|---|---|
+| `connectivity` (default) | Lexicographic ranking on (largest-component ratio, -component count, occupied voxels); ties keep the earliest sample |
+| `connectivity_weighted` | Legacy scalar score `Q = 100*rho - 2*c + min(n, R^3)/R^3` |
+| `first` | First sampled candidate; equivalent to `--no-verify-candidates` |
+| `first_valid` | First candidate passing all validity rules |
+| `random_valid` | Uniform draw among valid candidates, seeded by `--selection-seed` (defaults to `--seed`) |
+| `likelihood` | Highest VLM log-probability among valid candidates; falls back to `first_valid` without scores |
+
+Invalid candidates are always rejected before selection. If every candidate
+is invalid, the parseable candidate with the most occupied voxels is kept as
+a fallback; if none parses, an empty-geometry sentinel is returned and the
+part is skipped during merging.
+
+Equal-budget ablations keep `K` fixed and change only the selection rule:
+
+```bash
+# "Without verification" ablation (identical to --no-verify-candidates).
+python run_covetwin.py ... --candidate-count 5 --selection-rule first
+
+# Validity filtering only, no ranking.
+python run_covetwin.py ... --candidate-count 5 --selection-rule first_valid
+
+# Random valid candidate, seeded.
+python run_covetwin.py ... --candidate-count 5 --selection-rule random_valid --selection-seed 2026
+```
+
 ## Outputs
 
 ```text
@@ -311,8 +346,10 @@ test_covetwin/<sample_id>/
 `-- basic.xml
 ```
 
-`candidate_verification.json` records candidate validity, occupancy and
-connectivity statistics, and the selected candidate for each part.
+`candidate_verification.json` records the top-level selection rule and seed,
+per-candidate validity rule outcomes, occupancy and connectivity statistics,
+and the selected candidate for each part, including `fallback` /
+`fallback_reason` and `skipped` markers when no valid candidate exists.
 `basic.urdf` supports URDF-compatible engines; `basic.xml` is the MuJoCo asset.
 
 ## Training
@@ -328,6 +365,13 @@ python training/build_dataset.py \
   --output dataset/covetwin_training/conversations_train.json
 ```
 
+The builder enforces the object-disjoint split by default: `--split train`
+(the default) emits only the 1,636 training objects listed in
+`dataset/splits/trainingset.npy` and excludes the 388 test objects.
+`--split test` emits the held-out set, and `--split all` hard-errors unless
+`--allow-test-leak` is passed explicitly. Use `--shuffle-seed` for a
+deterministic record order.
+
 Then fine-tune Qwen2.5-VL:
 
 ```bash
@@ -339,9 +383,13 @@ export NUM_GPUS=4
 export COVETWIN_ANNOTATION_PATH=../dataset/covetwin_training/conversations_train.json
 export COVETWIN_IMAGE_ROOT=../dataset_toolkits/renders_all
 export OUTPUT_DIR=./output_covetwin_7b
+export SEED=42               # transformers.set_seed and the HF Trainer
+export COVETWIN_DATA_SEED=42 # dataloader shuffle seed (defaults to SEED)
 
 bash scripts/run_sft_covetwin.sh
 ```
+
+Both seeds are recorded in `$OUTPUT_DIR/seeds.json`.
 
 ## Evaluation
 
@@ -359,6 +407,40 @@ python evaluate_covetwin_metrics.py \
 Optional baseline roots can be supplied through `--articulate-roots`,
 `--urdf-anything-roots` and `--physx3d-roots`.
 
+By default the evaluator reports the paper's normalized motion-range error
+(continuous joints excluded; revolute `|span error| / pi`, prismatic
+`|span error| / D_o` with `D_o` the annotated largest object dimension) and
+stores per-record `revolute_range_error_rad` / `prismatic_range_error_m`
+diagnostics. Pass `--legacy-range-error` to reproduce the earlier
+axis-weighted vector-norm variant.
+
+### Statistics and profiling tools
+
+Three auditable helper scripts live under `evaluation/`:
+
+```bash
+# Paired comparison of two methods on per-object CSVs: bootstrap 95% CIs,
+# sign-flip permutation p-values and Holm correction, with SHA256 provenance.
+python evaluation/paired_statistics.py \
+  --csv evaluation_results/covetwin/per_object.csv \
+  --method-a CoVeTwin --method-b PhysX-Anything \
+  --out-prefix stats/covetwin_vs_physxanything \
+  --emit-latex
+
+# Aggregate repeated runs (e.g. seeds 2026-2028) into per-method
+# mean +/- sample std across runs.
+python evaluation/aggregate_runs.py \
+  --inputs evaluation_results/seed2026 evaluation_results/seed2027 evaluation_results/seed2028 \
+  --out-prefix stats/aggregate \
+  --emit-latex
+
+# Token statistics for geometry strings (HF tokenizer if given, else a
+# deterministic fallback counter).
+python evaluation/efficiency_profile.py dataset/txt_rep_32_finetune_mobility_all \
+  --tokenizer pretrain/covetwin_vlm \
+  --out stats/token_profile.json
+```
+
 ## Code structure
 
 | Component | Implementation |
@@ -374,17 +456,22 @@ Optional baseline roots can be supplied through `--articulate-roots`,
 | Part-label transfer | [`pipeline/3_part_segmentation.py`](pipeline/3_part_segmentation.py) |
 | URDF and MJCF export | [`pipeline/4_simulation_export.py`](pipeline/4_simulation_export.py) |
 | Unified evaluation | [`evaluate_covetwin_metrics.py`](evaluate_covetwin_metrics.py) |
+| Paired statistics | [`evaluation/paired_statistics.py`](evaluation/paired_statistics.py) |
+| Multi-run aggregation | [`evaluation/aggregate_runs.py`](evaluation/aggregate_runs.py) |
+| Token/efficiency profiling | [`evaluation/efficiency_profile.py`](evaluation/efficiency_profile.py) |
 
 ## Testing
 
-The deterministic test suite covers geometry codecs, candidate verification,
-the flow objective, ablation formats and the stage-1 file contract:
+The deterministic test suite covers geometry codecs, candidate verification
+and selection rules, paired statistics and aggregation, reproducibility
+contracts, the flow objective, ablation formats and the stage-1 file
+contract:
 
 ```bash
 python -m unittest discover -s tests -p 'test_covetwin*.py' -v
 ```
 
-The 13 tests do not require VLM or decoder weights.
+The 70 tests do not require VLM or decoder weights.
 
 ## Citation
 

@@ -42,6 +42,19 @@ def rank0_print(*args):
         print(*args)
 
 
+def resolve_data_seed(data_args) -> int:
+    """Deterministic seed for dataset sampling/shuffling (default 42).
+
+    Priority: data_args.data_seed (plumbed from the training entry), then the
+    COVETWIN_DATA_SEED environment variable, then the documented default 42.
+    """
+    seed = getattr(data_args, "data_seed", None)
+    if seed is None:
+        seed = int(os.environ.get("COVETWIN_DATA_SEED", "42"))
+    rank0_print(f"Dataset sampling/shuffle seed: {seed}")
+    return int(seed)
+
+
 def read_jsonl(path):
     with open(path, "r") as f:
         return [json.loads(line) for line in f]
@@ -165,6 +178,7 @@ class LazySupervisedDataset(Dataset):
             self.get_rope_index = get_rope_index_2
 
         list_data_dict = []
+        rng = random.Random(resolve_data_seed(data_args))
 
         for data in dataset_list:
             file_format = data["annotation_path"].split(".")[-1]
@@ -174,7 +188,7 @@ class LazySupervisedDataset(Dataset):
                 annotations = json.load(open(data["annotation_path"], "r"))
             sampling_rate = data.get("sampling_rate", 1.0)
             if sampling_rate < 1.0:
-                annotations = random.sample(
+                annotations = rng.sample(
                     annotations, int(len(annotations) * sampling_rate)
                 )
                 print(f"sampling {len(annotations)} examples from dataset {data}")
@@ -186,7 +200,7 @@ class LazySupervisedDataset(Dataset):
 
         rank0_print(f"Total training samples: {len(list_data_dict)}")
 
-        random.shuffle(list_data_dict)  # Randomly shuffle the data for training
+        rng.shuffle(list_data_dict)  # Seeded shuffle for reproducible training order
 
         rank0_print("Formatting inputs...Skip in lazy mode")
         self.tokenizer = tokenizer

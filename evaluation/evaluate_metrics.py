@@ -281,6 +281,17 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--simulation-steps", type=int, default=100)
+    parser.add_argument(
+        "--legacy-range-error",
+        action="store_true",
+        help=(
+            "Restore the pre-fix motion-range error: an axis-weighted absolute "
+            "vector difference in native rad/m units. The default is the paper's "
+            "unitless normalized range error (continuous joints excluded, "
+            "revolute |span error| / pi, prismatic |span error| / D_o with D_o "
+            "the annotated GT max dimension)."
+        ),
+    )
     parser.add_argument("--fail-fast", action="store_true")
     return parser.parse_args()
 
@@ -1440,6 +1451,7 @@ def dof_metrics(
     alignment: Alignment,
     pred_max_m: float,
     gt_max_m: float,
+    legacy_range_error: bool = False,
 ) -> dict[str, Any]:
     result: dict[str, Any] = {"type": gt["type"], "slot": gt["slot"]}
     pred_origin = transform_origin(pred["origin"], pred_norm, alignment)
@@ -1474,21 +1486,40 @@ def dof_metrics(
         result["pred_continuous"] = pred_continuous
         result["gt_continuous"] = gt_continuous
         result["continuous_accuracy"] = float(pred_continuous == gt_continuous)
+        # Continuous joints are excluded from the range error (paper protocol).
         if pred_continuous or gt_continuous:
             return result
         pred_span = (float(pred_limits[1]) - float(pred_limits[0])) * math.pi
         gt_span = (float(gt_limits[1]) - float(gt_limits[0])) * math.pi
-        result["motion_range_error"] = float(
-            np.linalg.norm(pred_axis * pred_span - gt_axis * gt_span)
-        )
+        span_error = abs(pred_span - gt_span)
         result["motion_range_unit"] = "rad"
+        if legacy_range_error:
+            legacy_error = float(
+                np.linalg.norm(pred_axis * pred_span - gt_axis * gt_span)
+            )
+            result["revolute_range_error_rad"] = legacy_error
+            result["motion_range_error"] = legacy_error
+        else:
+            # Paper definition: normalized revolute range error = |span error| / pi.
+            result["revolute_range_error_rad"] = span_error
+            result["motion_range_error"] = float(span_error / math.pi)
     elif gt["type"] == "prismatic":
         pred_span = (float(pred_limits[1]) - float(pred_limits[0])) * pred_max_m
         gt_span = (float(gt_limits[1]) - float(gt_limits[0])) * gt_max_m
-        result["motion_range_error"] = float(
-            np.linalg.norm(pred_axis * pred_span - gt_axis * gt_span)
-        )
+        span_error = abs(pred_span - gt_span)
         result["motion_range_unit"] = "m"
+        if legacy_range_error:
+            legacy_error = float(
+                np.linalg.norm(pred_axis * pred_span - gt_axis * gt_span)
+            )
+            result["prismatic_range_error_m"] = legacy_error
+            result["motion_range_error"] = legacy_error
+        else:
+            # Paper definition: normalized prismatic range error = |span error| / D_o,
+            # where D_o is the object's annotated GT max dimension in meters.
+            result["prismatic_range_error_m"] = span_error
+            result["motion_range_error"] = float(span_error / max(gt_max_m, 1e-12))
+    result["motion_range_normalized"] = not legacy_range_error
     return result
 
 
@@ -1509,6 +1540,7 @@ def articulation_metrics(
     gt_norm: Normalization,
     alignment: Alignment,
     scale: dict[str, Any],
+    legacy_range_error: bool = False,
 ) -> dict[str, Any]:
     pred_groups = parse_groups(pred_data)
     gt_groups = parse_groups(gt_data)
@@ -1554,6 +1586,7 @@ def articulation_metrics(
                 alignment,
                 pred_max_m,
                 gt_max_m,
+                legacy_range_error,
             )
             record.update(
                 {"pred_group_id": pred_group.group_id, "gt_group_id": gt_group.group_id}
@@ -1587,6 +1620,14 @@ def articulation_metrics(
         item for item in joint_records if item.get("motion_range_unit") == "rad"
     ]
     prismatic = [item for item in joint_records if item.get("motion_range_unit") == "m"]
+    range_error_note = (
+        "Legacy axis-weighted absolute vector difference in native rad/m units "
+        "(--legacy-range-error)."
+        if legacy_range_error
+        else "Paper normalized range error: continuous joints excluded, revolute "
+        "|span error| / pi, prismatic |span error| / D_o (annotated GT max "
+        "dimension). Unitless; comparable across joint types."
+    )
     return {
         "available": True,
         "joint_type_accuracy": None
@@ -1601,9 +1642,16 @@ def articulation_metrics(
         "axis_error_deg": mean_present(joint_records, "axis_error_deg"),
         "origin_error_m": mean_present(joint_records, "origin_error_m"),
         "motion_range_error": mean_present(joint_records, "motion_range_error"),
-        "motion_range_error_note": "Mean of native per-joint errors; inspect type-specific rad/m values when types are mixed.",
-        "revolute_motion_range_error_rad": mean_present(revolute, "motion_range_error"),
-        "prismatic_motion_range_error_m": mean_present(prismatic, "motion_range_error"),
+        "motion_range_error_definition": (
+            "legacy_axis_weighted" if legacy_range_error else "paper_normalized"
+        ),
+        "motion_range_error_note": range_error_note,
+        "revolute_motion_range_error_rad": mean_present(
+            revolute, "revolute_range_error_rad"
+        ),
+        "prismatic_motion_range_error_m": mean_present(
+            prismatic, "prismatic_range_error_m"
+        ),
         "num_axis_pairs": sum(
             item.get("axis_error_rad") is not None for item in joint_records
         ),
@@ -2100,6 +2148,7 @@ def evaluate_sample(spec: SampleSpec, args: argparse.Namespace) -> dict[str, Any
             gt_norm,
             alignment,
             result["scale"],
+            legacy_range_error=args.legacy_range_error,
         )
     else:
         result["articulation"] = unavailable("metric scale unavailable")
@@ -2257,6 +2306,11 @@ def write_outputs(results: list[dict[str, Any]], args: argparse.Namespace) -> No
         ) + " Affordance is priority_rank as a 1-10 class; visualization videos are never reverse-engineered into labels.",
         "part_matching": "Aligned per-part surface Chamfer plus Hungarian assignment; label/name matching is the fallback.",
         "articulation": "URDF/native joint types, world-frame axes/origins and ranges after the same geometry alignment.",
+        "motion_range_error": (
+            "LEGACY axis-weighted absolute vector difference in native rad/m units (--legacy-range-error)."
+            if args.legacy_range_error
+            else "Paper normalized range error: continuous joints excluded; revolute |span error| / pi; prismatic |span error| / D_o (annotated GT max dimension). Type-specific rad/m fields are diagnostics."
+        ),
         "executability": "Every URDF is loaded, joint-driven and stepped in isolated PyBullet DIRECT; worker crash, exception or non-finite state scores 0.",
         "provenance_warning": "URDF-Anything inherits its input geometry; Articulate-Anything may reference retrieved/GT PartNet meshes. These geometry/PSNR values must be reported with provenance.",
     }

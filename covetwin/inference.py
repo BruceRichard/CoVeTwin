@@ -25,7 +25,7 @@ from covetwin.geometry_codec import (
     serialize_relative_shape_spans,
 )
 from covetwin.prompts import part_geometry_prompt
-from covetwin.verification import CandidateSelection, evaluate_candidate, select_best_candidate
+from covetwin.verification import SELECTION_RULES, select_candidate
 
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
@@ -56,6 +56,21 @@ def parse_args() -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Rank K candidates with Eq. (16); disable for the paper's no-verification ablation.",
+    )
+    parser.add_argument(
+        "--selection-rule",
+        choices=SELECTION_RULES,
+        default=None,
+        help=(
+            "Candidate-selection rule. Default: 'connectivity', or 'first' when "
+            "--no-verify-candidates is given (the explicit 'w/o Verif.' ablation)."
+        ),
+    )
+    parser.add_argument(
+        "--selection-seed",
+        type=int,
+        default=None,
+        help="Seed for the 'random_valid' selection rule; defaults to --seed.",
     )
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--top-p", type=float, default=0.9)
@@ -236,6 +251,12 @@ def process_image(
     part_indices = _part_indices(global_output)
 
     merged: list[np.ndarray] = []
+    selection_rule = getattr(args, "selection_rule", None) or (
+        "connectivity" if args.verify_candidates else "first"
+    )
+    selection_seed = getattr(args, "selection_seed", None)
+    if selection_seed is None:
+        selection_seed = args.seed
     report: dict = {
         "method": "CoVeTwin",
         "sample_id": sample_id,
@@ -243,6 +264,8 @@ def process_image(
         "grid_size": args.grid_size,
         "candidate_count": args.candidate_count,
         "verification_enabled": args.verify_candidates,
+        "selection_rule": selection_rule,
+        "selection_seed": selection_seed,
         "score": "100*rho - 2*c + min(n,R^3)/R^3",
         "parts": [],
     }
@@ -267,27 +290,32 @@ def process_image(
             candidates.append(text)
             (candidate_dir / f"candidate_{candidate_index:03d}.txt").write_text(text, encoding="utf-8")
 
-        if args.verify_candidates:
-            selection = select_best_candidate(candidates, args.grid_size)
-        else:
-            evaluations = []
-            decoded_first = None
-            for candidate_index, candidate in enumerate(candidates):
-                evaluation, decoded = evaluate_candidate(
-                    candidate, candidate_index, args.grid_size
+        selection = select_candidate(
+            candidates,
+            args.grid_size,
+            selection_rule=selection_rule,
+            seed=selection_seed,
+        )
+        part_report = selection.to_dict()
+        for item in part_report["candidates"]:
+            item.pop("raw_text", None)
+            item["file"] = str(
+                (candidate_dir / f"candidate_{item['index']:03d}.txt").relative_to(
+                    output_dir
                 )
-                evaluations.append(evaluation)
-                if candidate_index == 0:
-                    decoded_first = decoded
-            if decoded_first is None:
-                raise ValueError(
-                    "the first candidate is unparsable/empty in no-verification mode"
-                )
-            selection = CandidateSelection(
-                selected_index=0,
-                voxels=decoded_first,
-                evaluations=tuple(evaluations),
             )
+        part_report["part_index"] = part_index
+        if selection.selected_index < 0:
+            # Empty-geometry sentinel: no candidate was parseable.  Skip this
+            # part gracefully instead of aborting the sample.
+            part_report.update(skipped=True, skip_reason=selection.fallback_reason)
+            report["parts"].append(part_report)
+            print(
+                f"[CoVeTwin] {sample_id} l_{part_index}: skipped "
+                f"({selection.fallback_reason})",
+                flush=True,
+            )
+            continue
         canonical = serialize_relative_shape_spans(
             encode_relative_shape_spans(selection.voxels, args.grid_size)
         )
@@ -297,29 +325,31 @@ def process_image(
             _save_point_cloud(output_dir / f"ind_{part_index}.ply", selection.voxels)
         merged.append(selection.voxels)
 
-        part_report = selection.to_dict()
-        for item in part_report["candidates"]:
-            item.pop("raw_text", None)
-            item["file"] = str(
-                (candidate_dir / f"candidate_{item['index']:03d}.txt").relative_to(
-                    output_dir
-                )
-            )
         part_report.update(
-            part_index=part_index,
+            skipped=False,
             selected_codec=canonical,
             selected_voxel_file=f"ind_{part_index}.npy",
         )
         report["parts"].append(part_report)
+        selected = selection.selected
+        quality = (
+            f"Q={selected.score:.6f}"
+            if selected is not None and selected.score is not None
+            else "Q=n/a"
+        )
         print(
             f"[CoVeTwin] {sample_id} l_{part_index}: selected "
             f"{selection.selected_index}/{args.candidate_count - 1}, "
-            f"Q={selection.selected.score:.6f}, "
-            f"verified={args.verify_candidates}",
+            f"{quality}, rule={selection_rule}, fallback={selection.fallback}",
             flush=True,
         )
 
-    np.save(output_dir / "allind.npy", np.concatenate(merged, axis=0))
+    np.save(
+        output_dir / "allind.npy",
+        np.concatenate(merged, axis=0)
+        if merged
+        else np.empty((0, 3), dtype=np.int64),
+    )
     (output_dir / "candidate_verification.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
@@ -392,6 +422,11 @@ def main() -> int:
         "method": "CoVeTwin",
         "input_root": str(args.demo_path.resolve()),
         "output_root": str(args.output_path.resolve()),
+        "selection_rule": args.selection_rule
+        or ("connectivity" if args.verify_candidates else "first"),
+        "selection_seed": args.selection_seed
+        if args.selection_seed is not None
+        else args.seed,
         "results": results,
     }
     (args.output_path / "covetwin_inference_manifest.json").write_text(

@@ -33,9 +33,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--remove-bg", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--save-part-ply", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--verify-candidates", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument(
+        "--selection-rule",
+        choices=("connectivity", "connectivity_weighted", "first", "first_valid", "random_valid", "likelihood"),
+        default=None,
+        help="Stage-1 candidate-selection rule (default: connectivity, or first with --no-verify-candidates).",
+    )
+    parser.add_argument(
+        "--selection-seed",
+        type=int,
+        default=None,
+        help="Seed for the random_valid selection rule (default: --seed).",
+    )
     parser.add_argument("--force-stage1", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.candidate_count <= 0:
+        parser.error("--candidate-count must be positive")
+    return args
 
 
 def _run(command: list[str], dry_run: bool) -> None:
@@ -72,6 +87,10 @@ def main() -> int:
             "--remove-bg" if args.remove_bg else "--no-remove-bg",
             "--verify-candidates" if args.verify_candidates else "--no-verify-candidates",
         ]
+        if args.selection_rule is not None:
+            command.extend(("--selection-rule", args.selection_rule))
+        if args.selection_seed is not None:
+            command.extend(("--selection-seed", str(args.selection_seed)))
         if args.only:
             command.extend(("--only", *args.only))
         if args.force_stage1:

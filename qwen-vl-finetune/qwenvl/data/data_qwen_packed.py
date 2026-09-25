@@ -26,6 +26,7 @@ except Exception:
 import transformers
 
 from . import data_list
+from .data_qwen import resolve_data_seed
 from .rope2d import get_rope_index_25, get_rope_index_2
 
 IGNORE_INDEX = -100
@@ -165,6 +166,7 @@ class LazySupervisedDataset(Dataset):
             self.get_rope_index = get_rope_index_2
 
         list_data_dict = []
+        rng = random.Random(resolve_data_seed(data_args))
 
         for data in dataset_list:
             file_format = data["annotation_path"].split(".")[-1]
@@ -174,7 +176,7 @@ class LazySupervisedDataset(Dataset):
                 annotations = json.load(open(data["annotation_path"], "r"))
             sampling_rate = data.get("sampling_rate", 1.0)
             if sampling_rate < 1.0:
-                annotations = random.sample(
+                annotations = rng.sample(
                     annotations, int(len(annotations) * sampling_rate)
                 )
                 print(f"sampling {len(annotations)} examples from dataset {data}")
@@ -190,7 +192,7 @@ class LazySupervisedDataset(Dataset):
 
         rank0_print(f"Total training samples: {len(list_data_dict)}")
 
-        random.shuffle(list_data_dict)  # Randomly shuffle the data for training
+        rng.shuffle(list_data_dict)  # Seeded shuffle for reproducible training order
 
         rank0_print("Formatting inputs...Skip in lazy mode")
         self.tokenizer = tokenizer

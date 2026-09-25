@@ -103,6 +103,25 @@ def train(attn_implementation="flash_attention_2"):
     local_rank = training_args.local_rank
     os.makedirs(training_args.output_dir, exist_ok=True)
 
+    # Seed all RNGs before any dataset sampling/shuffling happens.  The data
+    # seed defaults to the training seed (HF default 42) and is recorded in the
+    # output directory so runs are auditable.
+    transformers.set_seed(training_args.seed)
+    data_args.data_seed = (
+        training_args.data_seed
+        if training_args.data_seed is not None
+        else training_args.seed
+    )
+    rank0_print(
+        f"Training seed: {training_args.seed}; data seed: {data_args.data_seed}"
+    )
+    with open(os.path.join(training_args.output_dir, "seeds.json"), "w") as f:
+        json.dump(
+            {"seed": training_args.seed, "data_seed": data_args.data_seed},
+            f,
+            indent=2,
+        )
+
     if "qwen2.5" in model_args.model_name_or_path.lower():
         #ipdb.set_trace()
         model = Qwen2_5_VLForConditionalGeneration.from_pretrained(

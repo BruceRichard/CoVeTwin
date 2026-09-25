@@ -17,6 +17,12 @@ export MASTER_PORT="${MASTER_PORT:-29517}"
 export COVETWIN_ANNOTATION_PATH="${COVETWIN_ANNOTATION_PATH:-${REPO_ROOT}/dataset/covetwin_training/conversations.json}"
 export COVETWIN_IMAGE_ROOT="${COVETWIN_IMAGE_ROOT:-${REPO_ROOT}/dataset_toolkits/renders_all}"
 
+# Reproducibility: all dataset sampling/shuffling and trainer RNGs are seeded.
+# SEED drives transformers.set_seed and the HF Trainer; COVETWIN_DATA_SEED
+# drives the deterministic dataset shuffle in qwenvl/data. Default: 42.
+export SEED="${SEED:-42}"
+export COVETWIN_DATA_SEED="${COVETWIN_DATA_SEED:-${SEED}}"
+
 MODEL="${MODEL:-Qwen/Qwen2.5-VL-7B-Instruct}"
 OUTPUT_DIR="${OUTPUT_DIR:-./output_covetwin_7b}"
 DEEPSPEED_CONFIG="${DEEPSPEED_CONFIG:-./scripts/zero3.json}"
@@ -55,5 +61,7 @@ torchrun \
   --model_max_length "${MODEL_MAX_LENGTH:-8192}" \
   --gradient_checkpointing True \
   --dataloader_num_workers "${DATALOADER_WORKERS:-8}" \
+  --seed "${SEED}" \
+  --data_seed "${COVETWIN_DATA_SEED}" \
   --run_name covetwin_qwen2_5_vl_7b \
   --report_to none
